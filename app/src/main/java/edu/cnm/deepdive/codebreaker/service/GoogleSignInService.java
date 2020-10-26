@@ -50,7 +50,7 @@ public class GoogleSignInService {
     activity.startActivityForResult(intent, requestCode);
   }
 
-  private Task<GoogleSignInAccount> completeSignIn(Intent data){
+  public Task<GoogleSignInAccount> completeSignIn(Intent data){
     Task<GoogleSignInAccount> task = null;
     try {
       task = GoogleSignIn.getSignedInAccountFromIntent(data);
@@ -69,20 +69,6 @@ public class GoogleSignInService {
   public static void setContext(Application context) {
     GoogleSignInService.context = context;
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
   private static  class InstanceHolder{
