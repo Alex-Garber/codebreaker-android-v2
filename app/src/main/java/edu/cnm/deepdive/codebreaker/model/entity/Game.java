@@ -18,6 +18,8 @@ public class Game {
   @ColumnInfo(name = "game_id")
   private long id;
 
+  @ColumnInfo(name = "code_length", index = true)
+  private int codeLength;
 
   private String code;
 
@@ -37,6 +39,14 @@ public class Game {
 
   public void setId(long id) {
     this.id = id;
+  }
+
+  public int getCodeLength() {
+    return codeLength;
+  }
+
+  public void setCodeLength(int codeLength) {
+    this.codeLength = codeLength;
   }
 
   public String getCode() {
