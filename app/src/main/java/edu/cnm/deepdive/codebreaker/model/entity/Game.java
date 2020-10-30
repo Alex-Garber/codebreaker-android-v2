@@ -4,13 +4,17 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 import java.util.Date;
 import java.util.UUID;
 
 @Entity(
-    indices = {@Index(value = {"game_key"}, unique = true)}
+    indices = {@Index(value = {"game_key"}, unique = true)},
+    foreignKeys = @ForeignKey(entity = Match.class, parentColumns = "match_id", childColumns = "match_id",
+        onUpdate = ForeignKey.CASCADE
+    )
 )
 public class Game {
 
@@ -18,16 +22,16 @@ public class Game {
   @ColumnInfo(name = "game_id")
   private long id;
 
-  @ColumnInfo(name = "code_length", index = true)
-  private int codeLength;
+  @ColumnInfo(name = "game_key", typeAffinity = ColumnInfo.BLOB)
+  private UUID gameKey;
+
+  @ColumnInfo(name = "match_id", index = true)
+  private Long matchId;
 
   private String code;
 
-  @ColumnInfo(name = "match_key", index = true)
-  private UUID matchKey;
-
-  @ColumnInfo(name = "game_key")
-  private UUID gameKey;
+  @ColumnInfo(name = "code_length", index = true)
+  private int codeLength;
 
   @NonNull
   @ColumnInfo(index = true)
@@ -41,12 +45,20 @@ public class Game {
     this.id = id;
   }
 
-  public int getCodeLength() {
-    return codeLength;
+  public UUID getGameKey() {
+    return gameKey;
   }
 
-  public void setCodeLength(int codeLength) {
-    this.codeLength = codeLength;
+  public void setGameKey(UUID gameKey) {
+    this.gameKey = gameKey;
+  }
+
+  public Long getMatchId() {
+    return matchId;
+  }
+
+  public void setMatchId(Long matchId) {
+    this.matchId = matchId;
   }
 
   public String getCode() {
@@ -57,20 +69,12 @@ public class Game {
     this.code = code;
   }
 
-  public UUID getMatchKey() {
-    return matchKey;
+  public int getCodeLength() {
+    return codeLength;
   }
 
-  public void setMatchKey(UUID matchKey) {
-    this.matchKey = matchKey;
-  }
-
-  public UUID getGameKey() {
-    return gameKey;
-  }
-
-  public void setGameKey(UUID gameKey) {
-    this.gameKey = gameKey;
+  public void setCodeLength(int codeLength) {
+    this.codeLength = codeLength;
   }
 
   @NonNull
