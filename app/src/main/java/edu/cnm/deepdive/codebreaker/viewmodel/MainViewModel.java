@@ -9,10 +9,11 @@ import androidx.lifecycle.LifecycleObserver;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.OnLifecycleEvent;
+import androidx.lifecycle.Transformations;
 import androidx.preference.PreferenceManager;
 import edu.cnm.deepdive.codebreaker.R;
-import edu.cnm.deepdive.codebreaker.model.Code.Guess;
-import edu.cnm.deepdive.codebreaker.model.Game;
+import edu.cnm.deepdive.codebreaker.model.entity.Guess;
+import edu.cnm.deepdive.codebreaker.model.entity.Game;
 import edu.cnm.deepdive.codebreaker.model.pojo.ScoreSummary;
 import edu.cnm.deepdive.codebreaker.service.GameRepository;
 import io.reactivex.disposables.CompositeDisposable;
@@ -29,6 +30,7 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
   private final MutableLiveData<Game> game;
   private final MutableLiveData<Guess> guess;
   private final MutableLiveData<Boolean> solved;
+  private final LiveData<List<Guess>> guesses;
   private final MutableLiveData<Throwable> throwable;
   private final Random rng;
   private final String codeLengthPrefKey;
@@ -37,8 +39,6 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
   private final GameRepository repository;
   private final CompositeDisposable pending;
 
-  private Date timestamp;
-  private int previousGuessCount;
 
   public MainViewModel(@NonNull Application application) {
     super(application);
@@ -46,6 +46,7 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
     game = new MutableLiveData<>();
     guess = new MutableLiveData<>();
     solved = new MutableLiveData<>();
+    guesses = Transformations.switchMap(game, repository::getGuesses);
     throwable = new MutableLiveData<>();
     rng = new SecureRandom();
     codeLengthPrefKey = application.getString(R.string.code_length_pref_key);
@@ -72,6 +73,12 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
     return throwable;
   }
 
+  public LiveData<List<Guess>> getGuesses() {
+    return guesses;
+  }
+
+
+
   public void startGame() {
     throwable.setValue(null);
     int codeLength = preferences.getInt(codeLengthPrefKey, codeLengthPrefDefault);
@@ -80,8 +87,6 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
             .doAfterSuccess((game) -> {
               guess.postValue(null);
               solved.postValue(false);
-              timestamp = new Date();
-              previousGuessCount = 0;
             })
             .subscribe(
                 game::postValue,
@@ -90,35 +95,16 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
     );
   }
 
-  public void restartGame() {
-    Game game = this.game.getValue();
-    //noinspection ConstantConditions
-    int guessCount = game.getGuessCount();
-    throwable.setValue(null);
-    pending.add(
-        repository.restartGame(game)
-            .doOnComplete(() -> {
-              guess.postValue(null);
-              solved.postValue(false);
-              previousGuessCount += guessCount;
-            })
-            .subscribe(
-                () -> this.game.postValue(game),
-                throwable::postValue
-            )
-    );
-  }
 
   public void guess(String text) {
     Game game = this.game.getValue();
     throwable.setValue(null);
     Disposable disposable = repository.guess(game, text)
         .doAfterSuccess((guess) -> {
-          this.game.postValue(game);
           //noinspection ConstantConditions
-          if (guess.getCorrect() == game.getLength()) {
+          if (guess.getCorrect() == game.getCodeLength()) {
             solved.postValue(true);
-            save(game);
+
           }
         })
         .subscribe(
@@ -133,15 +119,6 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
     return repository.getSummaries();
   }
 
-  private void save(Game game) {
-    pending.add(
-        repository.save(game, timestamp, previousGuessCount)
-            .subscribe(
-                () -> {},
-                throwable::postValue
-            )
-    );
-  }
 
   @OnLifecycleEvent(Event.ON_STOP)
   private void clearPending() {
