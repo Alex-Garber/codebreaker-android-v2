@@ -41,7 +41,7 @@ public class Game {
 
   @NonNull
   @ColumnInfo(index = true)
-  private Date started;
+  private Date started = new Date();
 
   public long getId() {
     return id;
