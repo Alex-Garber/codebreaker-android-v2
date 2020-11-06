@@ -58,12 +58,19 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
     preferences = PreferenceManager.getDefaultSharedPreferences(application);
     pending = new CompositeDisposable();
     startGame();
+    testRoundTrip();
+
+
+  }
+
+  private void testRoundTrip() {
+    pending.add(
     userRepository.getServerUserProfile()
         .subscribe(
-            (user) -> Log.d(getClass().getSimpleName(), user.getDisplayName())
+            (user) -> Log.d(getClass().getSimpleName(), user.getDisplayName()),
+            throwable::postValue
+        )
         );
-
-
   }
 
   public LiveData<Game> getGame() {
