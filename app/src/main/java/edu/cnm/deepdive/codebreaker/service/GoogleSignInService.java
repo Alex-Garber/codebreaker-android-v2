@@ -3,13 +3,16 @@ package edu.cnm.deepdive.codebreaker.service;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Intent;
-import androidx.viewbinding.BuildConfig;
+
+import android.util.Log;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
+import edu.cnm.deepdive.codebreaker.BuildConfig;
+import io.reactivex.Single;
 
 public class GoogleSignInService {
 
@@ -19,15 +22,20 @@ public class GoogleSignInService {
 
   private  GoogleSignInAccount account;
 
-  private GoogleSignInService () {
-    GoogleSignInOptions options = new GoogleSignInOptions.Builder()
+  private GoogleSignInService() {
+    GoogleSignInOptions options  = new GoogleSignInOptions.Builder()
         .requestEmail()
         .requestId()
         .requestProfile()
-//        .requestIdToken(BuildConfig.CLIENT_ID)
+        .requestIdToken(BuildConfig.CLIENT_ID)
         .build();
-    client= GoogleSignIn.getClient(context, options);
+    client = GoogleSignIn.getClient(context, options);
   }
+
+  public static void setContext(Application context) {
+    GoogleSignInService.context = context;
+  }
+
   public static GoogleSignInService getInstance() {
     return InstanceHolder.INSTANCE;
   }
@@ -36,44 +44,49 @@ public class GoogleSignInService {
     return account;
   }
 
-  public static Application getContext() {
-    return context;
+  public Single<GoogleSignInAccount> refresh() {
+    return Single.create((emitter) ->
+        client.silentSignIn()
+            .addOnSuccessListener(this::setAccount)
+            .addOnSuccessListener(emitter::onSuccess)
+            .addOnFailureListener(emitter::onError)
+    );
   }
 
-  public Task<GoogleSignInAccount> refresh() {
-    return client.silentSignIn()
-        .addOnSuccessListener((account) -> this.account = account);
-  }
-  public void startSignIn(Activity activity, int requestCode){
-   account = null;
+  public void startSignIn(Activity activity, int requestCode) {
+    account = null;
     Intent intent = client.getSignInIntent();
     activity.startActivityForResult(intent, requestCode);
   }
 
-  public Task<GoogleSignInAccount> completeSignIn(Intent data){
+  public Task<GoogleSignInAccount> completeSignIn(Intent data) {
     Task<GoogleSignInAccount> task = null;
     try {
       task = GoogleSignIn.getSignedInAccountFromIntent(data);
-      account = task.getResult(ApiException.class);
+      setAccount(task.getResult(ApiException.class));
     } catch (ApiException e) {
-      // Exception will be passed automatically to onFailureListener
+      // Exception will be passed automatically to onFailureListener.
     }
     return task;
   }
 
   public Task<Void> signOut() {
     return client.signOut()
-        .addOnCompleteListener((ingored) -> account = null);
+        .addOnCompleteListener((ignored) -> setAccount(null));
   }
 
-  public static void setContext(Application context) {
-    GoogleSignInService.context = context;
+  private void setAccount(GoogleSignInAccount account) {
+    this.account = account;
+//    if (account != null) {
+//      //noinspection ConstantConditions
+//      Log.d(getClass().getSimpleName(), account.getIdToken());
+//    }
   }
 
+  private static class InstanceHolder {
 
-  private static  class InstanceHolder{
+    private static final GoogleSignInService INSTANCE = new GoogleSignInService();
 
-  private static final GoogleSignInService INSTANCE = new GoogleSignInService();
   }
 
 }
